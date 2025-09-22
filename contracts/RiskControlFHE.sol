@@ -85,7 +85,7 @@ contract FHERC {
         euint32 calldata encryptedAge,
         euint32 calldata encryptedIncome,
         string memory _clientId
-    ) public returns (euint32 encryptedCreditLimit, euint32 encryptedRiskScore, inEbool encryptedApproved) {
+    ) public returns (euint32 encryptedCreditLimit, euint32 encryptedRiskScore, ebool encryptedApproved) {
         // Only require client ID to be non-empty
         require(bytes(_clientId).length > 0, "Client ID cannot be empty");
         
@@ -174,8 +174,8 @@ contract FHERC {
      * @return successCount Number of successfully processed assessments
      */
     function batchAssessRiskEncrypted(
-        inEuint32[] calldata encryptedAges,
-        inEuint32[] calldata encryptedIncomes,
+        euint32[] calldata encryptedAges,
+        euint32[] calldata encryptedIncomes,
         string[] memory _clientIds
     ) external returns (uint256 successCount) {
         require(
@@ -209,7 +209,7 @@ contract FHERC {
     function getEncryptedAssessmentResult(string memory _clientId) public view returns (
         euint32 encryptedCreditLimit,
         euint32 encryptedRiskScore,
-        inEbool encryptedApproved,
+        ebool encryptedApproved,
         uint256 timestamp
     ) {
         require(bytes(_clientId).length > 0, "Client ID cannot be empty");
@@ -255,8 +255,8 @@ contract FHERC {
      * @param encryptedThreshold Encrypted risk score threshold for approval
      */
     function updateRiskParametersEncrypted(
-        inEuint32 calldata encryptedMultiplier,
-        inEuint32 calldata encryptedThreshold
+        euint32 calldata encryptedMultiplier,
+        euint32 calldata encryptedThreshold
     ) public onlyOwner {
         riskParameters = RiskParameters({
             incomeMultiplier: FHE.asEuint32(encryptedMultiplier),

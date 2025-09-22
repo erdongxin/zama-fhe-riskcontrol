@@ -47,23 +47,35 @@ async function main() {
     fs.writeFileSync(path.join(frontendSrcDir, "config.json"), JSON.stringify(config, null, 2));
     console.log("Wrote frontend config: frontend/web/src/config.json");
 
-    // ----------------- Copy ABI -----------------
+    // ----------------- Extract and save pure ABI -----------------
     try {
       const artifactPath = path.join(__dirname, "..", "artifacts", "contracts", "RiskControl.sol", "RiskControl.json");
       if (!fs.existsSync(artifactPath)) {
         throw new Error("ABI file not found. Did you compile the contract?");
       }
 
+      // Read the full artifact
+      const artifactContent = fs.readFileSync(artifactPath, "utf-8");
+      const artifact = JSON.parse(artifactContent);
+      
+      // Extract the ABI array
+      const abi = artifact.abi;
+      if (!abi || !Array.isArray(abi)) {
+        throw new Error("ABI not found in artifact");
+      }
+
       const abiDir = path.join(frontendSrcDir, "abi");
       if (!fs.existsSync(abiDir)) fs.mkdirSync(abiDir, { recursive: true });
 
-      const targetAbiPath = path.join(abiDir, "RiskControl.json");
-      fs.copyFileSync(artifactPath, targetAbiPath);
-      console.log("Copied ABI to frontend/web/src/abi/RiskControl.json");
+      const targetAbiPath = path.join(abiDir, "RiskControlABI.json");
+      
+      // Write only the ABI array to the file
+      fs.writeFileSync(targetAbiPath, JSON.stringify(abi, null, 2));
+      console.log("Extracted and saved pure ABI to frontend/web/src/abi/RiskControlABI.json");
     } catch (e) {
+      console.error("Failed to extract and save ABI:", e);
       console.warn(
-        "Failed to copy ABI automatically. Please copy artifacts/.../RiskControl.json manually to frontend/web/src/abi/RiskControl.json",
-        e
+        "Please manually extract the ABI from artifacts/.../RiskControl.json and save it to frontend/web/src/abi/RiskControlABI.json"
       );
     }
   }

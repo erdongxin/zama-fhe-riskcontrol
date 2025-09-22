@@ -24,7 +24,7 @@
     "hardhat"
   ],
   "dependencies": {
-    "@fhevm/solidity": "^0.8.0",
+    "@fhevm/solidity": "^0.8.24",
     "@zama-fhe/oracle-solidity": "^0.1.0",
     "dotenv": "^17.2.2",
     "encrypted-types": "^0.0.4",
