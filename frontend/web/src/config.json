@@ -1,5 +1,5 @@
 {
-  "network": "https://sepolia.drpc.org",
+  "network": "https://sepolia.g.alchemy.com/v2/T60xVAHFpWst4pFVf6-3KIbDRIovKDKk",
   "contractAddress": "0x39CdD7B03d6570d85E2B5A22D60Bb9E6062CACe2",
   "deployer": "0x0D4EA1E2dCAdF22Ac95386B9B21Ec753B95792D3"
 }

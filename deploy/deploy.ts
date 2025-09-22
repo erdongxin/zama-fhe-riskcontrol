@@ -26,11 +26,12 @@ async function main() {
   console.log("Deployer account:", wallet.address);
 
   // ----------------- Deploy RiskControl -----------------
+  // deploy/deploy.ts
   const RiskControlFactory = await hardhatEthers.getContractFactory("RiskControl", wallet);
-  const RiskControl = await RiskControlFactory.deploy();
-  await RiskControl.waitForDeployment();
+  const riskControl = await RiskControlFactory.deploy();
+  await riskControl.waitForDeployment();
 
-  const deployedAddress = (RiskControl as any).target || (RiskControl as any).address;
+  const deployedAddress = (riskControl as any).target || (riskControl as any).address;
   console.log("RiskControl contract deployed at:", deployedAddress);
 
   // ----------------- Write frontend config -----------------
