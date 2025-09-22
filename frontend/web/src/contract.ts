@@ -6,29 +6,43 @@ import RiskControlABI from "./abi/RiskControlABI.json";
 export const ABI = RiskControlABI;
 export const config = configJson;
 
-export async function getProvider() {
-  // if user has MetaMask, we'll use it when connecting
-  if ((window as any).ethereum) {
-    const p = new ethers.BrowserProvider((window as any).ethereum);
-    return p;
+/**
+ * 获取 provider
+ * 浏览器：优先使用 MetaMask
+ * SSR / Node：使用 RPC
+ */
+export function getProvider() {
+  if (typeof window !== "undefined" && (window as any).ethereum) {
+    return new ethers.BrowserProvider((window as any).ethereum);
   }
-  // fallback to public rpc
+  // Node / SSR fallback
   return new ethers.JsonRpcProvider(config.network);
 }
 
-// get a read-only contract (provider based)
-export async function getContractReadOnly() {
-  const provider = await getProvider();
+/**
+ * 获取只读合约
+ * 可在浏览器或 SSR 调用 view 方法
+ */
+export function getContractReadOnly() {
+  const provider = getProvider();
   return new ethers.Contract(config.contractAddress, ABI, provider);
 }
 
-// get a contract connected to signer (for write)
+/**
+ * 获取可写合约（需要用户钱包）
+ */
 export async function getContractWithSigner() {
-  if (!(window as any).ethereum) throw new Error("No injected wallet");
+  if (typeof window === "undefined" || !(window as any).ethereum) {
+    throw new Error("No injected wallet found");
+  }
   const provider = new ethers.BrowserProvider((window as any).ethereum);
   const signer = await provider.getSigner();
   return new ethers.Contract(config.contractAddress, ABI, signer);
 }
 
-// helper: format address lowercase
-export function normAddr(a: string) { return a ? a.toLowerCase() : a; }
+/**
+ * 格式化地址为小写
+ */
+export function normAddr(a: string) {
+  return a ? a.toLowerCase() : a;
+}
