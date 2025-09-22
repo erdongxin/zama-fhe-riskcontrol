@@ -36,32 +36,50 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    console.log("=== APP INITIALIZATION ===");
+    console.log("Environment:", process.env.NODE_ENV);
+    console.log("Contract config:", config);
+    console.log("Using ABI:", ABI ? "Loaded" : "Not loaded");
+    
     loadAssessments().finally(() => setLoading(false));
   }, []);
 
   const checkAdmin = async (addr: string) => {
     try {
+      console.log("Checking admin status for address:", addr);
       const contract = await getContractReadOnly();
-      if (!contract) return;
+      if (!contract) {
+        console.error("Contract not available for admin check");
+        return;
+      }
       const adminAddr: string = await contract.getOwner();
-      setIsAdmin(normAddr(addr) === normAddr(adminAddr));
+      console.log("Contract owner address:", adminAddr);
+      const isAdmin = normAddr(addr) === normAddr(adminAddr);
+      console.log("Is admin:", isAdmin);
+      setIsAdmin(isAdmin);
     } catch (e) {
-      setIsAdmin(false);
       console.error("Failed to check admin", e);
+      setIsAdmin(false);
     }
   };
 
   const onWalletSelect = async (wallet: any) => {
-    if (!wallet.provider) return;
+    console.log("Wallet selected:", wallet?.name || "Unknown wallet");
+    if (!wallet.provider) {
+      console.error("No provider in selected wallet");
+      return;
+    }
     try {
       const web3Provider = new ethers.BrowserProvider(wallet.provider);
       setProvider(web3Provider);
       const accounts = await web3Provider.send("eth_requestAccounts", []);
       const acc = accounts[0] || "";
+      console.log("Connected account:", acc);
       setAccount(acc);
       await checkAdmin(acc);
 
       wallet.provider.on("accountsChanged", async (accounts: string[]) => {
+        console.log("Accounts changed:", accounts);
         const newAcc = accounts[0] || "";
         setAccount(newAcc);
         await checkAdmin(newAcc);
@@ -72,8 +90,13 @@ export default function App() {
     }
   };
 
-  const onConnect = () => setWalletSelectorOpen(true);
+  const onConnect = () => {
+    console.log("Wallet connection initiated");
+    setWalletSelectorOpen(true);
+  };
+  
   const onDisconnect = () => {
+    console.log("Wallet disconnected");
     setAccount("");
     setIsAdmin(false);
     setProvider(null);
@@ -81,18 +104,31 @@ export default function App() {
 
   // ----------------- Load Assessments -----------------
   const loadAssessments = async () => {
+    console.log("=== LOADING ASSESSMENTS ===");
     try {
+      console.log("Getting read-only contract instance...");
       const contract = await getContractReadOnly();
-      if (!contract) return;
+      if (!contract) {
+        console.error("Failed to get contract instance");
+        return;
+      }
+      
+      console.log("Contract address:", contract.target);
+      console.log("Calling getAllClientIds...");
       
       // Get all client IDs
       const clientIds = await contract.getAllClientIds();
+      console.log("Client IDs received:", clientIds);
+      console.log("Number of client IDs:", clientIds.length);
       
       // Get assessments for each client
       const assessmentList: Assessment[] = [];
       for (let i = 0; i < clientIds.length; i++) {
         try {
+          console.log(`Getting assessment for client ${i}: ${clientIds[i]}`);
           const result = await contract.getAssessmentResult(clientIds[i]);
+          console.log(`Assessment result for ${clientIds[i]}:`, result);
+          
           assessmentList.push({
             clientId: clientIds[i],
             creditLimit: result.creditLimit,
@@ -105,26 +141,53 @@ export default function App() {
         }
       }
       
+      console.log("Total assessments loaded:", assessmentList.length);
       setAssessments(assessmentList);
     } catch (e) {
       console.error("Failed to load assessments", e);
+      // 添加更详细的错误信息
+      if (e instanceof Error) {
+        console.error("Error details:", {
+          message: e.message,
+          stack: e.stack,
+          code: (e as any).code,
+          data: (e as any).data
+        });
+      }
     }
   };
 
   // ----------------- Single Assessment -----------------
   const assessSingleClient = async () => {
-    if (!provider) { alert("Please connect wallet first"); return; }
+    console.log("=== SINGLE ASSESSMENT ===");
+    if (!provider) { 
+      console.error("No provider available");
+      alert("Please connect wallet first"); 
+      return; 
+    }
     if (!singleClient.age || !singleClient.income || !singleClient.clientId) {
+      console.error("Missing form data:", singleClient);
       alert("Please fill all fields"); 
       return;
     }
 
     try {
+      console.log("Getting signer...");
       const signer = await provider.getSigner();
+      console.log("Signer address:", await signer.getAddress());
+      
       const contract = new ethers.Contract(config.contractAddress, ABI, signer);
+      console.log("Contract with signer created at:", contract.target);
       
       // Convert income to USDT units (6 decimals)
       const incomeInUSDT = ethers.parseUnits(singleClient.income, 6);
+      console.log("Income converted to USDT units:", incomeInUSDT);
+      
+      console.log("Calling assessRisk with params:", {
+        age: parseInt(singleClient.age),
+        income: incomeInUSDT,
+        clientId: singleClient.clientId
+      });
       
       const tx = await contract.assessRisk(
         parseInt(singleClient.age),
@@ -132,7 +195,9 @@ export default function App() {
         singleClient.clientId
       );
       
+      console.log("Transaction sent, hash:", tx.hash);
       await tx.wait();
+      console.log("Transaction confirmed");
       
       // Reload assessments after delay
       setTimeout(loadAssessments, 3000);
