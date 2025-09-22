@@ -14,7 +14,7 @@ Try the live application: [https://zama-fhe-riskControl.vercel.app/](https://zam
 
 ---
 
-## Project Background
+## Project Background  
 
 In today's financial landscape, accurate risk assessment is crucial for credit decisions and regulatory compliance. However, traditional risk assessment systems face significant challenges:
 
