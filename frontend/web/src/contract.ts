@@ -1,9 +1,9 @@
 // contract.ts
 import { ethers } from "ethers";
-import abiJson from "./abi/RiskControl.json";
 import configJson from "./config.json";
+import RiskControlABI from "./abi/RiskControlABI.json";
 
-export const ABI = (abiJson as any).abi || abiJson;
+export const ABI = RiskControlABI;
 export const config = configJson;
 
 export async function getProvider() {
