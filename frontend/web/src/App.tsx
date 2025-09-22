@@ -5,7 +5,7 @@ import { loadFull } from "tsparticles";
 import { FaStar, FaChartBar, FaUsers, FaQuestionCircle, FaDownload, FaUser, FaMoneyBill, FaCreditCard, FaShieldAlt } from "react-icons/fa";
 import WalletManager from "./components/WalletManager";
 import WalletSelector from "./components/WalletSelector";
-import { ethers } from "ethers";
+import { ethers} from "ethers";
 import { getContractReadOnly, normAddr, ABI, config } from "./contract";
 
 export default function App() {
@@ -35,13 +35,157 @@ export default function App() {
     await loadFull(engine);
   }, []);
 
+  const diagnoseNetwork = async () => {
+    console.group("=== NETWORK DIAGNOSIS ===");
+    
+    try {
+      // 1. 检查以太坊提供者
+      if (typeof window === 'undefined' || typeof window.ethereum === 'undefined') {
+        console.error("❌ No Ethereum provider found in window.ethereum");
+        return;
+      }
+      console.log("✅ Ethereum provider found");
+      
+      // 2. 创建提供者
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      
+      // 3. 检查网络连接
+      try {
+        const network = await provider.getNetwork();
+        console.log("Network info:", {
+          name: network.name,
+          chainId: network.chainId.toString(),
+          isSepolia: network.chainId === 11155111n
+        });
+        
+        if (network.chainId !== 11155111n) {
+          console.error("❌ Not connected to Sepolia network");
+        } else {
+          console.log("✅ Connected to Sepolia network");
+        }
+      } catch (e) {
+        console.error("Failed to get network info:", e);
+      }
+      
+      // 4. 检查合约地址
+      console.log("Contract address from config:", config.contractAddress);
+      
+      // 5. 检查合约代码
+      try {
+        const code = await provider.getCode(config.contractAddress);
+        console.log("Contract code:", code !== "0x" ? "✅ Exists" : "❌ Does not exist");
+        console.log("Code length:", code.length);
+        
+        if (code === "0x") {
+          console.error("❌ No contract code at this address");
+        }
+      } catch (e) {
+        console.error("Failed to get contract code:", e);
+      }
+      
+      // 6. 检查账户连接
+      try {
+        const accounts = await provider.send("eth_accounts", []);
+        console.log("Connected accounts:", accounts);
+        
+        if (accounts.length > 0) {
+          console.log("✅ Wallet connected");
+        } else {
+          console.log("⚠️ Wallet not connected");
+        }
+      } catch (e) {
+        console.error("Failed to get accounts:", e);
+      }
+      
+      // 7. 测试简单合约调用
+      try {
+        const simpleContract = new ethers.Contract(
+          config.contractAddress,
+          ["function getOwner() external view returns (address)"],
+          provider
+        );
+        
+        console.log("Testing getOwner function...");
+        const owner = await simpleContract.getOwner();
+        console.log("✅ getOwner result:", owner);
+      } catch (e) {
+        console.error("❌ getOwner call failed:", e);
+      }
+      
+      // 8. 测试 getAllClientIds
+      try {
+        // 创建合约实例
+        const contract = new ethers.Contract(
+          config.contractAddress,
+          ABI,
+          provider
+        );
+        
+        console.log("Testing getAllClientIds function...");
+        const clientIds = await contract.getAllClientIds();
+        console.log("✅ getAllClientIds result:", clientIds);
+      } catch (e) {
+        console.error("❌ getAllClientIds call failed:", e);
+        
+        // 尝试低级调用
+        try {
+          console.log("Attempting low-level call...");
+          
+          // 再次创建合约实例
+          const contract = new ethers.Contract(
+            config.contractAddress,
+            ABI,
+            provider
+          );
+          
+          // 安全获取函数片段
+          const fragment = contract.interface.getFunction("getAllClientIds");
+          
+          if (!fragment) {
+            console.error("❌ Function 'getAllClientIds' not found in contract ABI");
+            return;
+          }
+          
+          const data = contract.interface.encodeFunctionData(fragment, []);
+          console.log("Encoded function data:", data);
+          
+          const result = await provider.call({
+            to: config.contractAddress,
+            data
+          });
+          console.log("Raw result from contract:", result);
+          
+          if (result === "0x") {
+            console.error("❌ Contract returned empty data");
+          } else {
+            try {
+              const decoded = contract.interface.decodeFunctionResult(fragment, result);
+              console.log("Decoded result:", decoded);
+            } catch (decodeError) {
+              console.error("Failed to decode result:", decodeError);
+            }
+          }
+        } catch (lowLevelError) {
+          console.error("❌ Low-level call failed:", lowLevelError);
+        }
+      }
+    } catch (mainError) {
+      console.error("Diagnosis failed:", mainError);
+    } finally {
+      console.groupEnd();
+    }
+  };
+
   useEffect(() => {
     console.log("=== APP INITIALIZATION ===");
     console.log("Environment:", process.env.NODE_ENV);
     console.log("Contract config:", config);
     console.log("Using ABI:", ABI ? "Loaded" : "Not loaded");
-    
+    diagnoseNetwork().then(() => {
+      loadAssessments().finally(() => setLoading(false));
+    });
     loadAssessments().finally(() => setLoading(false));
+    
   }, []);
 
   const checkAdmin = async (addr: string) => {
