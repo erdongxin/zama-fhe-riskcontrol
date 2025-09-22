@@ -82,8 +82,8 @@ contract FHERC {
      * @return encryptedApproved Encrypted approval status
      */
     function assessRiskEncrypted(
-        inEuint32 calldata encryptedAge,
-        inEuint32 calldata encryptedIncome,
+        euint32 calldata encryptedAge,
+        euint32 calldata encryptedIncome,
         string memory _clientId
     ) public returns (euint32 encryptedCreditLimit, euint32 encryptedRiskScore, inEbool encryptedApproved) {
         // Only require client ID to be non-empty
